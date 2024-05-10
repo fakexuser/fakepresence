@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fake Presence</title>
+    <link rel="shortcut icon" href="https://i.pinimg.com/564x/73/b2/55/73b2558f14adb49141fe99291468bf1d.jpg" type="image/x-icon">
+    <link rel="stylesheet" href="static/fonts/index.css">
+    <link rel="stylesheet" href="static/index.css">
+    <script type="text/javascript" src="/eel.js"></script>
+</head>
+<body>
+    <main>
+        <div class="title">Fake Presence</div>
+        <div class="preview view-0">
+            
+            <img src="https://placehold.co/512x512" alt="">
+            <input type="file" accept="image/png, image/gif, image/jpeg" class="p-image">
+            <div class="p-client">fake presence.</div>
+            <input type="text" placeholder="Click to change" class="p-input p-details" />
+            <input type="text" placeholder="Click to change" class="p-input p-state" />
+            <div class="p-button p-button-1" id="btn_1">Click to change</div>
+            <div class="p-button p-button-2" id="btn_2">Click to change</div>
+        </div>
+        <div class="preview view-1" style="display: none;">
+            <input type="text" placeholder="Label" class="p-input p-label" />
+            <input type="text" placeholder="Url" class="p-input p-url" />
+            
+            <div class="p-button p-button-1" id="btn_3">Save</div>
+            <div class="p-button p-button-2" id="btn_4">Delete</div>
+        </div>
+        <div class="switch">Enable</div>
+    </main>
+
+    <script>
+        const elm = {
+            details: document.querySelector(".p-details"),
+            state: document.querySelector(".p-state"),
+            switch: document.querySelector(".switch"),
+            label: document.querySelector(".p-label"),
+            image: document.querySelector(".p-image"),
+            imageSource: document.querySelector("img"),
+            url: document.querySelector(".p-url"),
+            btn_1: document.querySelector("#btn_1"),
+            btn_2: document.querySelector("#btn_2"),
+            btn_3: document.querySelector("#btn_3"),
+            btn_4: document.querySelector("#btn_4")
+        }
+
+        window.addEventListener("resize", () => {
+            window.resizeTo(420, 360);
+        })
+
+        let state = {
+            enable: false,
+            buttonView: false,
+            buttonState: 1,
+            data: {
+                img: "",
+                details: "",
+                state: "",
+                buttons: {
+                    1: { label: "", url: "", show: false },
+                    2: { label: "", url: "", show: false }
+                }
+            }
+        };
+
+        const setState = (s) => {
+            state = s;
+
+            elm.details.value = state.data.details;
+            elm.state.value = state.data.state;
+            
+            if (state.data.buttons[1].show) {
+                elm.btn_1.textContent = state.data.buttons[1].label;
+            }
+
+            if (state.data.buttons[2].show) {
+                elm.btn_2.textContent = state.data.buttons[2].label;
+            }
+
+            if (state.enable) {
+                elm.switch.textContent = "Disable";
+            }
+
+            if (state.data.img && state.data.img != "") {
+                elm.imageSource.src = state.data.img;
+            }
+        }
+
+        async function convertFileToBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = reject;
+            });
+        }
+
+        elm.image.addEventListener("change", async (event) => {
+            const url = await eel.send_event("imageUpload", { "base64": await convertFileToBase64(elm.image.files[0]) })();
+
+            elm.imageSource.src = url;
+            state.data.img = url;
+        })
+
+        elm.state.addEventListener("input", () => {
+            state.data.state = elm.state.value;
+        });
+
+        elm.details.addEventListener("input", () => {
+            state.data.details = elm.details.value;
+        })
+
+        const setButtonView = (value, bstate) => {
+            state.buttonView = value;
+            state.buttonState = bstate;
+
+            elm.label.value = "";
+            elm.url.value = "";
+            if (value) {
+                document.querySelector(".view-0").style.display = "none";
+                document.querySelector(".view-1").style.display = "block";
+            } else {
+                document.querySelector(".view-1").style.display = "none";
+                document.querySelector(".view-0").style.display = "block";
+            }
+        }
+
+        elm.btn_1.addEventListener("click", () => {
+            setButtonView(true, 1);
+
+            elm.label.value = state.data.buttons[1].label;
+            elm.url.value = state.data.buttons[1].url;
+        })
+
+        elm.btn_2.addEventListener("click", () => {
+            setButtonView(true, 2); 
+
+            elm.label.value = state.data.buttons[2].label;
+            elm.url.value = state.data.buttons[2].url;
+        })
+
+        elm.btn_3.addEventListener("click", () => {
+            console.log(state.buttonState);
+            if (elm.url.value != "" && elm.label.value != "") {
+                state.data.buttons[state.buttonState].show = true;
+                state.data.buttons[state.buttonState].label = elm.label.value;
+                state.data.buttons[state.buttonState].url = elm.url.value;
+            } else {
+                state.data.buttons[state.buttonState].show = true;
+            }
+
+            if (state.data.buttons[state.buttonState].show) {
+                elm["btn_" + state.buttonState].textContent = elm.label.value;
+            } else {
+                elm["btn_" + state.buttonState].textContent = "Click to change";
+            }
+
+            setButtonView(false, 0);
+        })
+
+        elm.btn_4.addEventListener("click", () => {
+            elm["btn_" + state.buttonState].textContent = "Click to change";
+            state.data.buttons[state.buttonState].show = false;
+
+            setButtonView(false, 0);
+        })
+        
+        elm.url.addEventListener("input", () => {
+            state.data.buttons[state.buttonState].url = elm.url.value;
+
+            if (elm.url.value != "" && elm.label.value != "") {
+                state.data.buttons[state.buttonState].show = true;
+            } else {
+                state.data.buttons[state.buttonState].show = false;
+            }
+        })
+
+        elm.label.addEventListener("input", () => {
+            state.data.buttons[state.buttonState].label = elm.label.value;
+
+            if (elm.url.value != "" && elm.label.value != "") {  
+                state.data.buttons[state.buttonState].show = true;
+            } else {
+                state.data.buttons[state.buttonState].show = false;
+            }
+        })
+
+        setInterval(() => eel.send_event("updateState", state), 100);
+
+        elm.switch.addEventListener("click", () => {
+            if (state.enable) {
+                elm.switch.textContent = "Enable";
+            } else {
+                elm.switch.textContent = "Disable";
+            }
+
+            state.enable = !state.enable;
+        })
+
+        eel.expose(send_event);
+        function send_event(name, data) {
+            if (name == "init") {
+                setState(data);
+            }
+        }
+
+        eel.send_event("ready", {});
+    </script>
+</body>
+</html>
